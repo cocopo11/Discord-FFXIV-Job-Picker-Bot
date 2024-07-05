@@ -28,6 +28,15 @@ jobs = {
     'Bard': '음유시인', 'Machinist': '기공사', 'Dancer': '무도가'
 }
 
+# Raid 이름 매핑 (한국어 -> 영어)
+raid_name_map = {
+    '아나바세이오스 (극)': 'Anabaseios (Savage)',
+    # 다른 레이드들도 필요에 따라 추가 가능
+}
+
+# 영어 -> 한국어 Raid 이름 매핑
+reverse_raid_name_map = {v: k for k, v in raid_name_map.items()}
+
 # Discord 봇 토큰과 FFLogs API 키
 TOKEN = 'YOUR_DISCORD_TOKEN'  # 여기에 Discord 봇 토큰을 입력하세요
 FFLOGS_API_KEY = 'YOUR_FFLOGS_API_KEY'  # 여기에 FFLogs API 키를 입력하세요
@@ -47,18 +56,26 @@ async def 직업뽑기(ctx):
     await ctx.send(f'선택된 직업: **{random_job}**')
 
 @bot.command()
-async def fflog(ctx, player_name: str, server_name: str):
+async def fflog(ctx, player_name: str, server_name: str, *, raid_name: str = None):
     # 한국어로 입력된 서버 이름을 영어로 변환
     english_server_name = server_name_map.get(server_name, server_name)
     
-    player_info = get_player_info(player_name, english_server_name)
+    if raid_name:
+        raid_name_english = raid_name_map.get(raid_name, raid_name)  # Raid 이름 변환
+        player_info = get_player_info(player_name, english_server_name, raid_name_english)
+    else:
+        # 기본적으로 Anabaseios (Savage) 레이드 결과만 가져오도록 설정
+        raid_name_english = 'Anabaseios (Savage)'
+        player_info = get_player_info(player_name, english_server_name, raid_name_english)
+
     if player_info:
         await ctx.send(player_info)
     else:
         await ctx.send('플레이어 정보를 찾을 수 없습니다.')
 
 
-def get_player_info(player_name, server_name):
+
+def get_player_info(player_name, server_name, raid_name=None):
     # 한국 서버 이름을 영어로 변환
     english_server_name = server_name_map.get(server_name, server_name)
 
@@ -67,8 +84,15 @@ def get_player_info(player_name, server_name):
         'Authorization': f'Bearer {FFLOGS_API_KEY}'
     }
 
+    params = {
+        'limit': 6  # 최대 6개 결과만 가져오기
+    }
+
+    if raid_name:
+        params['zone'] = get_zone_id(raid_name)
+
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()  # HTTP 오류 발생 시 예외 처리
 
         data = response.json()
@@ -76,13 +100,16 @@ def get_player_info(player_name, server_name):
             return '플레이어의 기록이 없습니다.'
 
         player_info = f'플레이어 이름: {player_name}\n'
-        for record in data:
+        for index, record in enumerate(data):
+            if index >= 6:  # 최대 6개 결과만 출력
+                break
             spec = record['spec']
             korean_job = jobs.get(spec, spec)  # 직업 이름을 한국어로 가져오거나 기존 이름 그대로 사용
             transformed_rank = transform_rank(record['rank'])
+            korean_raid_name = reverse_raid_name_map.get(record['zoneName'], record['zoneName'])
             player_info += (
                 f"직업: {korean_job}, "
-                f"레이드 이름: {record['encounterName']}, "
+                f"레이드 이름: {korean_raid_name}, "  # 한국어 레이드 이름 추가
                 f"랭크: {transformed_rank}\n"
             )
         return player_info
@@ -107,6 +134,13 @@ def transform_rank(rank):
     else:
         return '노딱'
 
+def get_zone_id(raid_name):
+    # 레이드 이름에 따른 zone ID 매핑
+    raid_map = {
+        'Anabaseios (Savage)': 54,  # Anabaseios (Savage)의 zone ID
+        # 다른 레이드들도 필요에 따라 추가 가능
+    }
+    return raid_map.get(raid_name, None)
 
 # 봇 실행
 bot.run(TOKEN)

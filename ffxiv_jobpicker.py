@@ -21,7 +21,7 @@ server_name_map = {
 
 # FFXIV 직업 목록 (한국 서버에 맞게 한국어로 변경)
 jobs = {
-    'Warrior': '전사', 'Paladin': '기사', 'Dark Knight': '암흑기사', 'Gunbreaker': '건브레이커',
+    'Warrior': '전사', 'Paladin': '나이트', 'Dark Knight': '암흑기사', 'Gunbreaker': '건브레이커',
     'White Mage': '백마도사', 'Scholar': '학자', 'Astrologian': '점성술사', 'Sage': '현자',
     'Monk': '몽크', 'Dragoon': '용기사', 'Ninja': '닌자', 'Samurai': '사무라이', 'Reaper': '리퍼',
     'Black Mage': '흑마도사', 'Summoner': '소환사', 'Red Mage': '적마도사',
